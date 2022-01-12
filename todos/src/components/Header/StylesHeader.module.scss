@@ -1,0 +1,6 @@
+@use "../../CSS/colors" as v;
+
+.mainH1 {
+    font-size: 10rem;
+    color: v.$app-title;
+}
