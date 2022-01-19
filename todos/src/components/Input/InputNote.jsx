@@ -72,6 +72,7 @@ const InputNote = ({
                         <div onDoubleClick={editNote} className={styles.labelContainer}>
                             {isEditing ? (
                                 <input
+                                    key={id}
                                     onBlur={editNote}
                                     onChange={e => setInputValue(e.target.value)}
                                     onKeyDown={e => {
@@ -88,7 +89,7 @@ const InputNote = ({
                                     ref={cross}
                                 />
                             ) : (
-                                <span className={styles.labelNote} ref={cross}>
+                                <span key={id} className={styles.labelNote} ref={cross}>
                                     {content.text}
                                 </span>
                             )}

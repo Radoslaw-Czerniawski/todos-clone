@@ -1,23 +1,41 @@
-import { Header } from "./components/Header/Header";
-import { Input } from "./components/Input/Input";
-import styles from "./CSS/StylesApp.module.scss";
+import { useState } from "react";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { Authentication } from "./components/Authentication/Authentication";
+import { Login } from "./Views/Login";
+import { Main } from "./Views/Main";
+import {Admin } from "./Views/Admin"
 
 function App() {
-    return (
-    <div className={styles.appWrapper}>
-        <section className={styles.sectionContainer}>
-            <Header title={"todos"}/>
-            <Input />
-        </section>
-        <div className={styles.authorsSection}>
-            <p>Double-click to edit a todo</p>
-            <p>Created by Oscar Godson</p>
-            <p>Refactored by Christoph Burgmer</p>
-            <p>Recreated by Radosław Czerniawski</p>
-        </div>
-    </div>
-    );
 
+    const [isLogged, setIsLogged] = useState(() => {
+        const state = JSON.parse(window.localStorage.getItem("isLogged"))
+        return state !== null ? state : false
+    });
+    const [user, setCurrentUser] = useState(() => {
+        const user = window.localStorage.getItem("user")
+        return user !== "" ? JSON.parse(window.localStorage.getItem("user")) : null
+    });
+
+
+
+    return (
+        <BrowserRouter>
+            <Routes>
+                <Route
+                    path="/"
+                    element={
+                        <Authentication user={user} isLogged={isLogged}>
+                            <Main user={user} />
+                            <Admin />
+                        </Authentication>
+                    }
+                >
+                </Route>
+                <Route path="/login" element={<Login setCurrentUser={setCurrentUser} setIsLogged={setIsLogged} />}/>
+                <Route path="/admin" element={<Admin />}/>
+            </Routes>
+        </BrowserRouter>
+    );
 }
 
 export default App;

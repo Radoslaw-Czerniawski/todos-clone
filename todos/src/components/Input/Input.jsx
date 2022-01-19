@@ -6,40 +6,62 @@ import { CSSTransition, TransitionGroup } from "react-transition-group";
 import uniqid from "uniqid";
 import styled from "styled-components";
 
-const Input = () => {
+const Input = ({ user }) => {
     const [notes, setNotes] = useState([]);
     const [currentlyRendering, setCurrentlyRendering] = useState("All");
     const [notesLeft, setNotesLeft] = useState(0);
+    const [currentUser, setCurrentUser] = useState(user);
+
+    console.log(user);
 
     useEffect(() => {
         fetchNotesAndAppState();
     }, []);
 
     const fetchNotesAndAppState = useCallback(() => {
-        fetch(`http://localhost:3000/notes`)
+        fetch(`/notes`)
             .then(res => res.json())
             .then(data => {
-                console.log(data);
                 setNotes(data);
             });
 
-        fetch(`http://localhost:3000/notesState`)
+        fetch(`/states`)
             .then(res => res.json())
             .then(data => {
-                setCurrentlyRendering(data.currentlyRendering);
-                setNotesLeft(data.length);
+                console.log("aaa", currentUser);
+                if (data.length === 0) {
+                    fetch(`/states/add`, {
+                        method: "POST",
+                        headers: {
+                            "Content-type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            length: 0,
+                            currentlyRendering: "All",
+                            login: currentUser,
+                        }),
+                    }).then(() => {
+                        setNotesLeft(0);
+                    });
+                } else {
+                    console.log(data[0].login);
+                    setCurrentlyRendering(data[0].currentlyRendering);
+                    setNotesLeft(data[0].length);
+                }
             });
     }, []);
 
     const changeNoteValue = (value, noteIndex, setInputValue, id) => {
         return Promise.resolve(
-            fetch(`http://localhost:3000/notes/${id}`, {
+            fetch(`/notes/update/${id}`, {
                 method: "PATCH",
                 headers: {
                     "Content-type": "application/json",
                 },
                 body: JSON.stringify({
                     text: value,
+                    isActive: notes[noteIndex].isActive,
+                    login: currentUser,
                 }),
             }),
         ).then(() => {
@@ -51,17 +73,12 @@ const Input = () => {
         });
     };
 
-    console.log(notes);
-
     const deleteCompleted = () => {
         const deletInOrder = async () => {
-            console.log("notatki", notes);
             const elToDelet = await notes.filter(note => !note.isActive && note);
 
-            console.log("to jest to", elToDelet);
-
             const wow = await elToDelet.forEach(arg => {
-                fetch(`http://localhost:3000/notes/${arg.id}`, {
+                fetch(`/notes/${arg._id}`, {
                     method: "DELETE",
                 });
             });
@@ -76,93 +93,123 @@ const Input = () => {
     };
 
     const deleteCurrentNote = (isActive, noteIndex, id) => {
-        fetch(`http://localhost:3000/notes/${id}`, {
+        fetch(`/notes/${id}`, {
             method: "DELETE",
-        }).then(() => {
-            setNotes(() => {
-                const sliceArr = notes.filter((note, index) => index !== noteIndex && note);
-                return sliceArr;
-            });
-
-            setNotesLeft(prevState => (isActive ? prevState - 1 : prevState));
-        });
-    };
-
-    const changeNoteActiveState = (isActiveState, noteIndex, id) => {
-        fetch(`http://localhost:3000/notes/${id}`, {
-            method: "PATCH",
-            headers: {
-                "Content-type": "application/json",
-            },
-            body: JSON.stringify({
-                isActive: !isActiveState,
-            }),
         })
-        .then(() => {
-            fetch(`http://localhost:3000/notesState`, {
-                method: "PATCH",
-                headers: {
-                    "Content-type": "application/json",
-                },
-                body: JSON.stringify({
-                    length: isActiveState ? notesLeft - 1 : notesLeft + 1,
-                }),
-            })
-        })
-        .then(() => {
-            setNotes(() => {
-                const newStateArr = notes;
-                newStateArr[noteIndex].isActive = !newStateArr[noteIndex].isActive;
-                return newStateArr;
-            });
-
-            setNotesLeft(prevState => (isActiveState ? prevState - 1 : prevState + 1));
-        });
-    };
-
-    const changeAllNotesDone = () => {
-        const deletInOrder = async () => {
-            const doDelete = await notes.forEach(arg => {
-                fetch(`http://localhost:3000/notes/${arg.id}`, {
+            .then(() => {
+                fetch(`/states/update`, {
                     method: "PATCH",
                     headers: {
                         "Content-type": "application/json",
                     },
                     body: JSON.stringify({
-                        isActive: false,
+                        length: notesLeft - 1,
+                        login: currentUser,
+                    }),
+                });
+            })
+            .then(() => {
+                setNotes(() => {
+                    const sliceArr = notes.filter((note, index) => index !== noteIndex && note);
+                    return sliceArr;
+                });
+
+                setNotesLeft(prevState => (isActive ? prevState - 1 : prevState));
+            });
+    };
+
+    const changeNoteActiveState = (isActiveState, noteIndex, id) => {
+        fetch(`/notes/update/${id}`, {
+            method: "PATCH",
+            headers: {
+                "Content-type": "application/json",
+            },
+            body: JSON.stringify({
+                text: notes[noteIndex].text,
+                isActive: !isActiveState,
+                login: currentUser,
+            }),
+        })
+            .then(() => {
+                fetch(`/states/update`, {
+                    method: "PATCH",
+                    headers: {
+                        "Content-type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        length: isActiveState ? notesLeft - 1 : notesLeft + 1,
+                        login: currentUser,
+                    }),
+                });
+            })
+            .then(() => {
+                setNotes(() => {
+                    const newStateArr = notes;
+                    newStateArr[noteIndex].isActive = !newStateArr[noteIndex].isActive;
+                    return newStateArr;
+                });
+
+                setNotesLeft(prevState => (isActiveState ? prevState - 1 : prevState + 1));
+            });
+    };
+
+    const changeAllNotesDone = () => {
+        const deleteInOrder = async () => {
+            const wow = await notes.forEach(note => {
+                fetch(`/notes/update/${note._id}`, {
+                    method: "PATCH",
+                    headers: {
+                        "Content-type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        _id: note._id,
+                        text: note.text,
+                        isActive: notesLeft ? false : true,
+                        login: currentUser,
                     }),
                 });
             });
         };
 
-        deletInOrder()
-        .then(() => {
-            fetch(`http://localhost:3000/notesState`, {
-                method: "PATCH",
-                headers: {
-                    "Content-type": "application/json",
-                },
-                body: JSON.stringify({
-                    length: notesLeft ? 0 : notes.length,
-                }),
+        deleteInOrder()
+            .then(() => {
+                fetch(`/states/update`, {
+                    method: "PATCH",
+                    headers: {
+                        "Content-type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        length: notesLeft ? 0 : notes.length,
+                        currentlyRendering: currentlyRendering,
+                        login: currentUser,
+                    }),
+                });
             })
-        })
-        .then(() => {
-            setNotes(() => {
-                const sliceArr = notes.map((note, index) => ({
-                    text: note.text,
-                    isActive: notesLeft ? false : true,
-                    id: note.id,
-                }));
+            .then(() => {
+                setNotes(() => {
+                    const sliceArr = notes.map((note, index) => ({
+                        text: note.text,
+                        isActive: notesLeft ? false : true,
+                        _id: note._id,
+                    }));
 
-                return sliceArr;
+                    return sliceArr;
+                });
+                if (notesLeft) {
+                    setNotesLeft(0);
+                } else {
+                    setNotesLeft(notes.length);
+                }
             });
-            if (notesLeft) {
-                setNotesLeft(0);
-            } else {
-                setNotesLeft(notes.length);
-            }
-        });
+    };
+
+    const logoutUser = () => {
+        window.localStorage.setItem("isLogged", JSON.stringify(false));
+        window.localStorage.setItem("user", "");
+        fetch("/users/logout")
+            .then(res => res.json())
+            .then(data => console.log(data))
+            .then(() => window.location.reload());
     };
 
     return (
@@ -184,11 +231,12 @@ const Input = () => {
                                 {
                                     text: e.target.value,
                                     isActive: true,
-                                    id: uniqeId,
+                                    _id: uniqeId,
+                                    login: currentUser,
                                 },
                             ];
 
-                            fetch(`http://localhost:3000/notes`, {
+                            fetch(`/notes/add`, {
                                 method: "POST",
                                 headers: {
                                     "Content-type": "application/json",
@@ -196,13 +244,28 @@ const Input = () => {
                                 body: JSON.stringify({
                                     text: e.target.value,
                                     isActive: true,
-                                    id: uniqeId,
+                                    _id: uniqeId,
+                                    login: currentUser,
                                 }),
-                            }).then(() => {
-                                setNotes(stateArr);
-                                setNotesLeft(prevState => prevState + 1);
-                                e.target.value = "";
-                            });
+                            })
+                                .then(() => {
+                                    fetch(`/states/update`, {
+                                        method: "PATCH",
+                                        headers: {
+                                            "Content-type": "application/json",
+                                        },
+                                        body: JSON.stringify({
+                                            length: notesLeft + 1,
+                                            currentlyRendering: currentlyRendering,
+                                            login: currentUser,
+                                        }),
+                                    });
+                                })
+                                .then(() => {
+                                    setNotes(stateArr);
+                                    setNotesLeft(prevState => prevState + 1);
+                                    e.target.value = "";
+                                });
                         }
                     }}
                     className={styles.input}
@@ -211,13 +274,13 @@ const Input = () => {
                 />
             </div>
             <StyledTransition>
-                {notes.map(({ text, isActive, id }, index) => {
+                {notes.map(({ text, isActive, _id }, index) => {
                     if (currentlyRendering === "Active") {
                         return (
                             isActive && (
-                                <CSSTransition key={id} timeout={500} classNames="item">
+                                <CSSTransition key={_id} timeout={500} classNames="item">
                                     <InputNote
-                                        id={id}
+                                        id={_id}
                                         changeNoteActiveState={changeNoteActiveState}
                                         deleteNotes={deleteCurrentNote}
                                         notes={notes}
@@ -230,9 +293,9 @@ const Input = () => {
                     } else if (currentlyRendering === "Completed") {
                         return (
                             !isActive && (
-                                <CSSTransition key={id} timeout={500} classNames="item">
+                                <CSSTransition key={_id} timeout={500} classNames="item">
                                     <InputNote
-                                        id={id}
+                                        id={_id}
                                         changeNoteActiveState={changeNoteActiveState}
                                         deleteNotes={deleteCurrentNote}
                                         notes={notes}
@@ -244,9 +307,9 @@ const Input = () => {
                         );
                     } else {
                         return (
-                            <CSSTransition key={id} timeout={500} classNames="item">
+                            <CSSTransition key={_id} timeout={500} classNames="item">
                                 <InputNote
-                                    id={id}
+                                    id={_id}
                                     changeNoteActiveState={changeNoteActiveState}
                                     deleteNotes={deleteCurrentNote}
                                     notes={notes}
@@ -261,6 +324,7 @@ const Input = () => {
             {notes.length > 0 && (
                 <CSSTransition timeout={500} classNames="item">
                     <InputFilters
+                        currentUser={currentUser}
                         amountLeft={notesLeft}
                         whatIsRendered={currentlyRendering}
                         setCurrentlyRendering={setCurrentlyRendering}
@@ -268,6 +332,14 @@ const Input = () => {
                     />
                 </CSSTransition>
             )}
+            <button
+                onClick={() => {
+                    logoutUser();
+                }}
+                className={styles.button}
+            >
+                Logout
+            </button>
         </>
     );
 };

@@ -1,7 +1,13 @@
 import { useState } from "react";
 import styles from "./StylesInputFilter.module.scss";
 
-const InputFilters = ({ whatIsRendered, setCurrentlyRendering, amountLeft, deleteCompleted }) => {
+const InputFilters = ({
+    whatIsRendered,
+    setCurrentlyRendering,
+    amountLeft,
+    deleteCompleted,
+    currentUser
+}) => {
     const filters = ["All", "Active", "Completed"];
 
     return (
@@ -15,14 +21,16 @@ const InputFilters = ({ whatIsRendered, setCurrentlyRendering, amountLeft, delet
                         <span
                             key={filter}
                             className={whatIsRendered === filter ? styles.active : styles.mode}
-                            onClick={(e) => {
-                                fetch(`http://localhost:3000/notesState`, {
+                            onClick={e => {
+                                fetch(`/states/update`, {
                                     method: "PATCH",
                                     headers: {
                                         "Content-type": "application/json",
                                     },
                                     body: JSON.stringify({
+                                        length: amountLeft,
                                         currentlyRendering: e.target.textContent,
+                                        login: currentUser
                                     }),
                                 }).then(() => {
                                     setCurrentlyRendering(e.target.textContent);
