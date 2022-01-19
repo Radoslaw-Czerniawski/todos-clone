@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { InputFilters } from "./InputFilters";
 import { InputNote } from "./InputNote";
 import styles from "./StylesInput.module.scss";
@@ -7,80 +7,163 @@ import uniqid from "uniqid";
 import styled from "styled-components";
 
 const Input = () => {
-    const [notes, setNotes] = useState(() => {
-        if (!JSON.parse(window.localStorage.getItem("todosData"))) {
-            window.localStorage.setItem("todosData", JSON.stringify([]));
-            window.localStorage.setItem("todosView", JSON.stringify("All"));
-            return [];
-        } else {
-            return JSON.parse(window.localStorage.getItem("todosData"))
-        }
+    const [notes, setNotes] = useState([]);
+    const [currentlyRendering, setCurrentlyRendering] = useState("All");
+    const [notesLeft, setNotesLeft] = useState(0);
 
-    });
-    const [currentlyRendering, setCurrentlyRendering] = useState(JSON.parse(window.localStorage.getItem("todosView")));
-    const [notesLeft, setNotesLeft] = useState(() => {
-        const notesLocalData = JSON.parse(window.localStorage.getItem("todosData")).filter(leftNotes => leftNotes.isActive && leftNotes)
-        return notesLocalData.length
-    }
-    );
+    useEffect(() => {
+        fetchNotesAndAppState();
+    }, []);
 
-    const changeNoteValue = (value, noteIndex, setInputValue) => {
-        setNotes(prevState => {
-            prevState[noteIndex].text = value;
-            window.localStorage.setItem("todosData", JSON.stringify(prevState));
-            return prevState;
+    const fetchNotesAndAppState = useCallback(() => {
+        fetch(`http://localhost:3000/notes`)
+            .then(res => res.json())
+            .then(data => {
+                console.log(data);
+                setNotes(data);
+            });
+
+        fetch(`http://localhost:3000/notesState`)
+            .then(res => res.json())
+            .then(data => {
+                setCurrentlyRendering(data.currentlyRendering);
+                setNotesLeft(data.length);
+            });
+    }, []);
+
+    const changeNoteValue = (value, noteIndex, setInputValue, id) => {
+        return Promise.resolve(
+            fetch(`http://localhost:3000/notes/${id}`, {
+                method: "PATCH",
+                headers: {
+                    "Content-type": "application/json",
+                },
+                body: JSON.stringify({
+                    text: value,
+                }),
+            }),
+        ).then(() => {
+            setNotes(prevState => {
+                prevState[noteIndex].text = value;
+                return prevState;
+            });
+            setInputValue(value);
         });
-
-        setInputValue(value);
     };
+
+    console.log(notes);
 
     const deleteCompleted = () => {
-        setNotes(() => {
-            const sliceArr = notes.filter((note, index) => note.isActive && note);
-            window.localStorage.setItem("todosData", JSON.stringify(sliceArr));
-            return sliceArr;
+        const deletInOrder = async () => {
+            console.log("notatki", notes);
+            const elToDelet = await notes.filter(note => !note.isActive && note);
+
+            console.log("to jest to", elToDelet);
+
+            const wow = await elToDelet.forEach(arg => {
+                fetch(`http://localhost:3000/notes/${arg.id}`, {
+                    method: "DELETE",
+                });
+            });
+        };
+
+        deletInOrder().then(() => {
+            setNotes(() => {
+                const sliceArr = notes.filter((note, index) => note.isActive && note);
+                return sliceArr;
+            });
         });
     };
 
-    const deleteCurrentNote = (isActive, noteIndex) => {
-        setNotes(() => {
-            const sliceArr = notes.filter((note, index) => index !== noteIndex && note);
-            console.log(sliceArr);
-            window.localStorage.setItem("todosData", JSON.stringify(sliceArr));
-            return sliceArr;
-        });
+    const deleteCurrentNote = (isActive, noteIndex, id) => {
+        fetch(`http://localhost:3000/notes/${id}`, {
+            method: "DELETE",
+        }).then(() => {
+            setNotes(() => {
+                const sliceArr = notes.filter((note, index) => index !== noteIndex && note);
+                return sliceArr;
+            });
 
-        setNotesLeft(prevState => (isActive ? prevState - 1 : prevState));
+            setNotesLeft(prevState => (isActive ? prevState - 1 : prevState));
+        });
     };
 
-    const changeNoteActiveState = (isActive, noteIndex) => {
-        setNotes(() => {
-            const newStateArr = notes;
-            newStateArr[noteIndex].isActive = !newStateArr[noteIndex].isActive;
-            window.localStorage.setItem("todosData", JSON.stringify(newStateArr));
-            return newStateArr;
-        });
+    const changeNoteActiveState = (isActiveState, noteIndex, id) => {
+        fetch(`http://localhost:3000/notes/${id}`, {
+            method: "PATCH",
+            headers: {
+                "Content-type": "application/json",
+            },
+            body: JSON.stringify({
+                isActive: !isActiveState,
+            }),
+        })
+        .then(() => {
+            fetch(`http://localhost:3000/notesState`, {
+                method: "PATCH",
+                headers: {
+                    "Content-type": "application/json",
+                },
+                body: JSON.stringify({
+                    length: isActiveState ? notesLeft - 1 : notesLeft + 1,
+                }),
+            })
+        })
+        .then(() => {
+            setNotes(() => {
+                const newStateArr = notes;
+                newStateArr[noteIndex].isActive = !newStateArr[noteIndex].isActive;
+                return newStateArr;
+            });
 
-        setNotesLeft(prevState => (isActive ? prevState - 1 : prevState + 1));
+            setNotesLeft(prevState => (isActiveState ? prevState - 1 : prevState + 1));
+        });
     };
 
     const changeAllNotesDone = () => {
-        setNotes(() => {
-            const sliceArr = notes.map((note, index) => ({
-                text: note.text,
-                isActive: notesLeft ? false : true,
-            }));
-            window.localStorage.setItem("todosData", JSON.stringify(sliceArr));
-            return sliceArr;
-        });
-        if (notesLeft) {
-            setNotesLeft(0);
-        } else {
-            setNotesLeft(notes.length);
-        }
-    };
+        const deletInOrder = async () => {
+            const doDelete = await notes.forEach(arg => {
+                fetch(`http://localhost:3000/notes/${arg.id}`, {
+                    method: "PATCH",
+                    headers: {
+                        "Content-type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        isActive: false,
+                    }),
+                });
+            });
+        };
 
-    let displayNotes = notes;
+        deletInOrder()
+        .then(() => {
+            fetch(`http://localhost:3000/notesState`, {
+                method: "PATCH",
+                headers: {
+                    "Content-type": "application/json",
+                },
+                body: JSON.stringify({
+                    length: notesLeft ? 0 : notes.length,
+                }),
+            })
+        })
+        .then(() => {
+            setNotes(() => {
+                const sliceArr = notes.map((note, index) => ({
+                    text: note.text,
+                    isActive: notesLeft ? false : true,
+                    id: note.id,
+                }));
+
+                return sliceArr;
+            });
+            if (notesLeft) {
+                setNotesLeft(0);
+            } else {
+                setNotesLeft(notes.length);
+            }
+        });
+    };
 
     return (
         <>
@@ -94,22 +177,32 @@ const Input = () => {
                 <input
                     onKeyDown={e => {
                         if (e.key === "Enter" && e.target.value !== "") {
-                            setNotes(() => {
+                            const uniqeId = uniqid();
 
-                                const stateArr = [
-                                    ...notes,
-                                    {
-                                        text: e.target.value,
-                                        isActive: true,
-                                        id: uniqid(),
-                                    },
-                                ];
-                                window.localStorage.setItem("todosData", JSON.stringify(stateArr));
-                                return stateArr
+                            const stateArr = [
+                                ...notes,
+                                {
+                                    text: e.target.value,
+                                    isActive: true,
+                                    id: uniqeId,
+                                },
+                            ];
+
+                            fetch(`http://localhost:3000/notes`, {
+                                method: "POST",
+                                headers: {
+                                    "Content-type": "application/json",
+                                },
+                                body: JSON.stringify({
+                                    text: e.target.value,
+                                    isActive: true,
+                                    id: uniqeId,
+                                }),
+                            }).then(() => {
+                                setNotes(stateArr);
+                                setNotesLeft(prevState => prevState + 1);
+                                e.target.value = "";
                             });
-
-                            setNotesLeft(prevState => prevState + 1);
-                            e.target.value = "";
                         }
                     }}
                     className={styles.input}
@@ -118,12 +211,13 @@ const Input = () => {
                 />
             </div>
             <StyledTransition>
-                {displayNotes.map(({ text, isActive, id }, index) => {
+                {notes.map(({ text, isActive, id }, index) => {
                     if (currentlyRendering === "Active") {
                         return (
                             isActive && (
                                 <CSSTransition key={id} timeout={500} classNames="item">
                                     <InputNote
+                                        id={id}
                                         changeNoteActiveState={changeNoteActiveState}
                                         deleteNotes={deleteCurrentNote}
                                         notes={notes}
@@ -138,6 +232,7 @@ const Input = () => {
                             !isActive && (
                                 <CSSTransition key={id} timeout={500} classNames="item">
                                     <InputNote
+                                        id={id}
                                         changeNoteActiveState={changeNoteActiveState}
                                         deleteNotes={deleteCurrentNote}
                                         notes={notes}
@@ -151,6 +246,7 @@ const Input = () => {
                         return (
                             <CSSTransition key={id} timeout={500} classNames="item">
                                 <InputNote
+                                    id={id}
                                     changeNoteActiveState={changeNoteActiveState}
                                     deleteNotes={deleteCurrentNote}
                                     notes={notes}

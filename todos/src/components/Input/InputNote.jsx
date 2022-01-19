@@ -1,7 +1,14 @@
 import styles from "./StylesInputNote.module.scss";
 import { useEffect, useRef, useState } from "react";
 
-const InputNote = ({ changeNoteActiveState, deleteNotes, noteIndex, notes, changeNoteValue }) => {
+const InputNote = ({
+    changeNoteActiveState,
+    deleteNotes,
+    noteIndex,
+    notes,
+    changeNoteValue,
+    id,
+}) => {
     const [isEditing, setIsEditing] = useState(false);
     const [inputValue, setInputValue] = useState(notes[noteIndex].text);
     const [needReload, setNeedReload] = useState(false);
@@ -10,7 +17,7 @@ const InputNote = ({ changeNoteActiveState, deleteNotes, noteIndex, notes, chang
     const editNote = () => {
         if (content.isActive) {
             setIsEditing(prevState => !prevState);
-            setInputValue(content.text)
+            setInputValue(content.text);
         }
     };
 
@@ -59,7 +66,7 @@ const InputNote = ({ changeNoteActiveState, deleteNotes, noteIndex, notes, chang
                     <input type="checkbox" className={styles.checkbox} />
                     <span
                         className={content.isActive ? styles.checkmark : styles.checkedCheckmark}
-                        onClick={() => changeNoteActiveState(content.isActive, noteIndex)}
+                        onClick={() => changeNoteActiveState(content.isActive, noteIndex, id)}
                     ></span>
                     {!needReload && (
                         <div onDoubleClick={editNote} className={styles.labelContainer}>
@@ -69,8 +76,10 @@ const InputNote = ({ changeNoteActiveState, deleteNotes, noteIndex, notes, chang
                                     onChange={e => setInputValue(e.target.value)}
                                     onKeyDown={e => {
                                         if (e.key === "Enter") {
-                                            setIsEditing(false);
-                                            changeNoteValue(inputValue, noteIndex, setInputValue);
+                                            changeNoteValue(inputValue, noteIndex, setInputValue, id)
+                                            .then(() => {
+                                                setIsEditing(false);
+                                            })
                                         }
                                     }}
                                     autoFocus
@@ -87,7 +96,7 @@ const InputNote = ({ changeNoteActiveState, deleteNotes, noteIndex, notes, chang
                     )}
 
                     <button
-                        onClick={() => deleteNotes(content.isActive, noteIndex)}
+                        onClick={() => deleteNotes(content.isActive, noteIndex, id)}
                         className={styles.removeNote}
                     />
                 </div>

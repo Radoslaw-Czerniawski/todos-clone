@@ -15,16 +15,19 @@ const InputFilters = ({ whatIsRendered, setCurrentlyRendering, amountLeft, delet
                         <span
                             key={filter}
                             className={whatIsRendered === filter ? styles.active : styles.mode}
-                            onClick={e =>
-                                setCurrentlyRendering(() => {
-                                    window.localStorage.setItem(
-                                        "todosView",
-                                        JSON.stringify(filter),
-                                    );
-                                    console.log(e.target.textContent);
-                                    return e.target.textContent;
-                                })
-                            }
+                            onClick={(e) => {
+                                fetch(`http://localhost:3000/notesState`, {
+                                    method: "PATCH",
+                                    headers: {
+                                        "Content-type": "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                        currentlyRendering: e.target.textContent,
+                                    }),
+                                }).then(() => {
+                                    setCurrentlyRendering(e.target.textContent);
+                                });
+                            }}
                         >
                             {filter}
                         </span>
