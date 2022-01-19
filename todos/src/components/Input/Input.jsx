@@ -3,18 +3,31 @@ import { InputFilters } from "./InputFilters";
 import { InputNote } from "./InputNote";
 import styles from "./StylesInput.module.scss";
 import { CSSTransition, TransitionGroup } from "react-transition-group";
-import uniqid from "uniqid"
-import styled from "styled-components"
-
+import uniqid from "uniqid";
+import styled from "styled-components";
 
 const Input = () => {
-    const [notes, setNotes] = useState([]);
-    const [currentlyRendering, setCurrentlyRendering] = useState("All");
-    const [notesLeft, setNotesLeft] = useState(0);
+    const [notes, setNotes] = useState(() => {
+        if (!JSON.parse(window.localStorage.getItem("todosData"))) {
+            window.localStorage.setItem("todosData", JSON.stringify([]));
+            window.localStorage.setItem("todosView", JSON.stringify("All"));
+            return [];
+        } else {
+            return JSON.parse(window.localStorage.getItem("todosData"))
+        }
+
+    });
+    const [currentlyRendering, setCurrentlyRendering] = useState(JSON.parse(window.localStorage.getItem("todosView")));
+    const [notesLeft, setNotesLeft] = useState(() => {
+        const notesLocalData = JSON.parse(window.localStorage.getItem("todosData")).filter(leftNotes => leftNotes.isActive && leftNotes)
+        return notesLocalData.length
+    }
+    );
 
     const changeNoteValue = (value, noteIndex, setInputValue) => {
         setNotes(prevState => {
             prevState[noteIndex].text = value;
+            window.localStorage.setItem("todosData", JSON.stringify(prevState));
             return prevState;
         });
 
@@ -24,6 +37,7 @@ const Input = () => {
     const deleteCompleted = () => {
         setNotes(() => {
             const sliceArr = notes.filter((note, index) => note.isActive && note);
+            window.localStorage.setItem("todosData", JSON.stringify(sliceArr));
             return sliceArr;
         });
     };
@@ -32,6 +46,7 @@ const Input = () => {
         setNotes(() => {
             const sliceArr = notes.filter((note, index) => index !== noteIndex && note);
             console.log(sliceArr);
+            window.localStorage.setItem("todosData", JSON.stringify(sliceArr));
             return sliceArr;
         });
 
@@ -42,6 +57,7 @@ const Input = () => {
         setNotes(() => {
             const newStateArr = notes;
             newStateArr[noteIndex].isActive = !newStateArr[noteIndex].isActive;
+            window.localStorage.setItem("todosData", JSON.stringify(newStateArr));
             return newStateArr;
         });
 
@@ -54,6 +70,7 @@ const Input = () => {
                 text: note.text,
                 isActive: notesLeft ? false : true,
             }));
+            window.localStorage.setItem("todosData", JSON.stringify(sliceArr));
             return sliceArr;
         });
         if (notesLeft) {
@@ -77,14 +94,19 @@ const Input = () => {
                 <input
                     onKeyDown={e => {
                         if (e.key === "Enter" && e.target.value !== "") {
-                            setNotes([
-                                ...notes,
-                                {
-                                    text: e.target.value,
-                                    isActive: true,
-                                    id: uniqid(),
-                                },
-                            ]);
+                            setNotes(() => {
+
+                                const stateArr = [
+                                    ...notes,
+                                    {
+                                        text: e.target.value,
+                                        isActive: true,
+                                        id: uniqid(),
+                                    },
+                                ];
+                                window.localStorage.setItem("todosData", JSON.stringify(stateArr));
+                                return stateArr
+                            });
 
                             setNotesLeft(prevState => prevState + 1);
                             e.target.value = "";
@@ -127,11 +149,7 @@ const Input = () => {
                         );
                     } else {
                         return (
-                            <CSSTransition
-                                key={id}
-                                timeout={500}
-                                classNames="item"
-                            >
+                            <CSSTransition key={id} timeout={500} classNames="item">
                                 <InputNote
                                     changeNoteActiveState={changeNoteActiveState}
                                     deleteNotes={deleteCurrentNote}
@@ -145,12 +163,14 @@ const Input = () => {
                 })}
             </StyledTransition>
             {notes.length > 0 && (
-                <InputFilters
-                    amountLeft={notesLeft}
-                    whatIsRendered={currentlyRendering}
-                    setCurrentlyRendering={setCurrentlyRendering}
-                    deleteCompleted={deleteCompleted}
-                />
+                <CSSTransition timeout={500} classNames="item">
+                    <InputFilters
+                        amountLeft={notesLeft}
+                        whatIsRendered={currentlyRendering}
+                        setCurrentlyRendering={setCurrentlyRendering}
+                        deleteCompleted={deleteCompleted}
+                    />
+                </CSSTransition>
             )}
         </>
     );
@@ -159,5 +179,5 @@ const Input = () => {
 export { Input };
 
 const StyledTransition = styled(TransitionGroup)`
-    width: 100%
-`
+    width: 100%;
+`;

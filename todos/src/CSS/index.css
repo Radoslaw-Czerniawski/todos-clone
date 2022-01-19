@@ -40,6 +40,7 @@ code {
 .item-exit {
   max-height: 6rem;
   z-index: 1;
+  opacity: 1;
 }
 
 .item-exit-active {
