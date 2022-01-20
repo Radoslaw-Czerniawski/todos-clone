@@ -1,7 +1,6 @@
 # todos Clone
 
-This is a recreation of a JS app called [todos](https://todomvc.com/examples/vanillajs/), using `React.js` and SASS.
-
+This is a recreation of a JS app called [todos](https://todomvc.com/examples/vanillajs/), using `React.js`, `React Router`, `SASS`, `Node.js` and `MongoDB`.
 <img src="screenshots/screenshot1.jpg">
 
 ## Overview
