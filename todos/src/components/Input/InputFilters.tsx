@@ -1,14 +1,23 @@
 import { useState } from "react";
 import styles from "./StylesInputFilter.module.scss";
 
-const InputFilters = ({
+interface Props {
+    whatIsRendered: string | null;
+    setCurrentlyRendering: (param: string | null) => void;
+    amountLeft: number;
+    currentUser: string;
+    deleteCompleted: () => void;
+}
+
+export const InputFilters = ({
     whatIsRendered,
     setCurrentlyRendering,
     amountLeft,
     deleteCompleted,
-    currentUser
-}) => {
-    const filters = ["All", "Active", "Completed"];
+    currentUser,
+}: Props) => {
+    const filters: string[] = ["All", "Active", "Completed"];
+
 
     return (
         <>
@@ -29,11 +38,11 @@ const InputFilters = ({
                                     },
                                     body: JSON.stringify({
                                         length: amountLeft,
-                                        currentlyRendering: e.target.textContent,
-                                        login: currentUser
+                                        currentlyRendering: filter,
+                                        login: currentUser,
                                     }),
                                 }).then(() => {
-                                    setCurrentlyRendering(e.target.textContent);
+                                    setCurrentlyRendering( filter);
                                 });
                             }}
                         >
@@ -48,5 +57,3 @@ const InputFilters = ({
         </>
     );
 };
-
-export { InputFilters };

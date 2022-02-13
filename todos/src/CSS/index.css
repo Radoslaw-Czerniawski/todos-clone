@@ -48,5 +48,31 @@ code {
   z-index: -1;
   opacity: 0;
   transform: translateY(-200%);
-  transition: opacity 300ms, transform 500ms,  max-height 500ms;
+  transition: opacity 500ms, transform 550ms,  max-height 550ms;
+}
+
+.item2 {
+}
+.item2-enter {
+  max-height: 0;
+  opacity: 0;
+}
+.item2-enter-active {
+  max-height: 6rem;
+  opacity: 1;
+  transition: opacity 300ms, max-height 300ms;
+}
+.item2-exit {
+  max-height: 6rem;
+  z-index: 1;
+  opacity: 1;
+}
+
+.item2-exit-active {
+  max-height: 0;
+  z-index: -1;
+  opacity: 0;
+  font-size: 0px;
+  transform: translateY(-200%);
+  transition: opacity 300ms, transform 300ms,  max-height 300ms;
 }

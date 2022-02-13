@@ -12,7 +12,7 @@ const InputNote = ({
     const [isEditing, setIsEditing] = useState(false);
     const [inputValue, setInputValue] = useState(notes[noteIndex].text);
     const [needReload, setNeedReload] = useState(false);
-    const content = notes[noteIndex];
+    const content/* : Note */ = notes[noteIndex];
 
     const editNote = () => {
         if (content.isActive) {
@@ -72,6 +72,7 @@ const InputNote = ({
                         <div onDoubleClick={editNote} className={styles.labelContainer}>
                             {isEditing ? (
                                 <input
+                                maxLength="32"
                                     key={id}
                                     onBlur={editNote}
                                     onChange={e => setInputValue(e.target.value)}

@@ -4,8 +4,6 @@ const bcryp = require("bcrypt");
 const mongoose = require("mongoose");
 const cookieParser = require("cookie-parser");
 
-const users = [{ name: "Kyle", password: "password" }];
-
 require("dotenv").config();
 
 const app = express();

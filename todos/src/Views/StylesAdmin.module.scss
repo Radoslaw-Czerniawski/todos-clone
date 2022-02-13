@@ -1,0 +1,95 @@
+@use "../CSS/colors" as v;
+
+.appWrapper {
+display: grid;
+  min-height: 100vh;
+  overflow: hidden;
+  justify-content: center;
+  grid-template-rows: auto 1fr auto;
+  margin: 0 auto;
+}
+
+
+.input {
+    display: grid;
+    width: clamp(2rem, 40rem, 60rem);
+    padding: 2rem;
+    font-size: 2.4rem;
+    line-height: 1.35;
+    box-shadow: v.$section-shadow;
+    border: none;
+    margin-top: 1.7rem;
+    display: grid;
+    grid-template-columns: .2fr 1.8fr;
+    background-color: white;
+}
+
+
+.button {
+    @extend .input;
+    display: inline-block;
+    align-self: center;
+    width: 50%;
+    margin-top: 2rem;
+    padding: .5rem;
+    font-size: 2rem;
+    border-radius: 1rem;
+    color: v.$text-color;
+    background-color: white;
+    border: .1rem solid v.$app-title;
+    &:active {
+        transition: transform 100ms;
+    }
+}
+
+.markAllDone {
+    align-self: center;
+    left: 1.5rem;
+    top: 1.5rem;
+    height: 1.5rem;
+    width: 1.5rem;
+    transform: rotateZ(-90deg);
+    background-image: url("../icons/Chevron.png");
+    background-size: cover;
+    filter: invert(73%) sepia(0%) saturate(4157%) hue-rotate(150deg) brightness(57%) contrast(55%);
+    opacity: .2;
+    transition: transform 200ms, opacity 200ms;
+
+}
+
+.markedAllDone {
+    @extend .markAllDone;
+    opacity: 1;
+    opacity: 1;
+        transform: rotateZ(0deg);
+        transition: opacity 200ms, transform 200ms;
+}
+
+.label {
+    display: flex;
+    justify-content: flex-end;
+    padding-right: 1rem;
+}
+
+.listItem {
+    @extend .input;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 5rem;
+    border-top: 0.1rem solid #ededed;
+    padding: 0;
+    margin: 0;
+    position: relative;
+
+    &::before {
+        content: '';
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 50px;
+    overflow: hidden;
+    box-shadow: 0 1px 1px rgb(0 0 0 / 20%), 0 8px 0 -3px #f6f6f6, 0 9px 1px -3px rgb(0 0 0 / 20%), 0 16px 0 -6px #f6f6f6, 0 17px 2px -6px rgb(0 0 0 / 20%);
+    }
+}

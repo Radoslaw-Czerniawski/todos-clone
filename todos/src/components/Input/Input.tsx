@@ -5,66 +5,80 @@ import styles from "./StylesInput.module.scss";
 import { CSSTransition, TransitionGroup } from "react-transition-group";
 import uniqid from "uniqid";
 import styled from "styled-components";
+import {
+    MongoDBAddSTates,
+    MongoDBDeleteNote,
+    MongoDBDecrementStateLength,
+    MongoDBDeleteNotesInOrder,
+    MongoDBFetchStates,
+    MongoDBGetNotes,
+    MongoDBMarkAllNotesDone,
+    MongoDBPatchStatesLength,
+    MongoDBUpdateActiveState,
+    MongoDBUpdateNoteValue,
+    MongoDBLogoutUser,
+} from "../../utilities/MongoDBContact";
 
-const Input = ({ user }) => {
-    const [notes, setNotes] = useState([]);
-    const [currentlyRendering, setCurrentlyRendering] = useState("All");
-    const [notesLeft, setNotesLeft] = useState(0);
-    const [currentUser, setCurrentUser] = useState(user);
+export interface Note {
+    text: string;
+    isActive: boolean;
+    _id: string;
+    login: string;
+}
+
+interface NoteData extends Note {
+    __v: number;
+}
+
+interface Props {
+    user: string;
+}
+
+interface StateData {
+    _id: string;
+    __v: number;
+    length: number;
+    login: string;
+    currentlyRendering: string;
+}
+
+export const Input = ({ user }: Props) => {
+    const [notes, setNotes] = useState<Note[]>([]);
+    const [currentlyRendering, setCurrentlyRendering] = useState<string | null>("All");
+    const [notesLeft, setNotesLeft] = useState<number>(0);
+    const [currentUser, setCurrentUser] = useState<string>(user);
 
     console.log(user);
 
-    useEffect(() => {
+    useEffect((): void => {
         fetchNotesAndAppState();
     }, []);
 
-    const fetchNotesAndAppState = useCallback(() => {
-        fetch(`/notes`)
-            .then(res => res.json())
-            .then(data => {
-                setNotes(data);
-            });
+    const fetchNotesAndAppState = useCallback((): void => {
+        MongoDBGetNotes().then((data: NoteData[]) => {
+            setNotes(data);
+        });
 
-        fetch(`/states`)
-            .then(res => res.json())
-            .then(data => {
-                console.log("aaa", currentUser);
-                if (data.length === 0) {
-                    fetch(`/states/add`, {
-                        method: "POST",
-                        headers: {
-                            "Content-type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            length: 0,
-                            currentlyRendering: "All",
-                            login: currentUser,
-                        }),
-                    }).then(() => {
-                        setNotesLeft(0);
-                    });
-                } else {
-                    console.log(data[0].login);
-                    setCurrentlyRendering(data[0].currentlyRendering);
-                    setNotesLeft(data[0].length);
-                }
-            });
+        MongoDBFetchStates().then((data: StateData[]) => {
+            if (data.length === 0) {
+                MongoDBAddSTates(currentUser).then(() => {
+                    setNotesLeft(0);
+                });
+            } else {
+                console.log(data[0].login);
+                setCurrentlyRendering(data[0].currentlyRendering);
+                setNotesLeft(data[0].length);
+            }
+        });
     }, []);
 
-    const changeNoteValue = (value, noteIndex, setInputValue, id) => {
-        return Promise.resolve(
-            fetch(`/notes/update/${id}`, {
-                method: "PATCH",
-                headers: {
-                    "Content-type": "application/json",
-                },
-                body: JSON.stringify({
-                    text: value,
-                    isActive: notes[noteIndex].isActive,
-                    login: currentUser,
-                }),
-            }),
-        ).then(() => {
+    const changeNoteValue = (
+        value: string,
+        noteIndex: number,
+        setInputValue: (param: string) => void,
+        id: string,
+    ): Promise<void> => {
+        return MongoDBUpdateNoteValue(id, value, notes, noteIndex, currentUser).then(() => {
             setNotes(prevState => {
                 prevState[noteIndex].text = value;
                 return prevState;
@@ -73,44 +87,25 @@ const Input = ({ user }) => {
         });
     };
 
-    const deleteCompleted = () => {
-        const deletInOrder = async () => {
-            const elToDelet = await notes.filter(note => !note.isActive && note);
-
-            const wow = await elToDelet.forEach(arg => {
-                fetch(`/notes/${arg._id}`, {
-                    method: "DELETE",
-                });
-            });
-        };
-
-        deletInOrder().then(() => {
+    const deleteCompleted = (): void => {
+        MongoDBDeleteNotesInOrder(notes).then(() => {
             setNotes(() => {
-                const sliceArr = notes.filter((note, index) => note.isActive && note);
+                const sliceArr: Note[] = notes.filter(note => note.isActive && note);
                 return sliceArr;
             });
         });
     };
 
-    const deleteCurrentNote = (isActive, noteIndex, id) => {
-        fetch(`/notes/${id}`, {
-            method: "DELETE",
-        })
+    const deleteCurrentNote = (isActive: boolean, noteIndex: number, id: string): void => {
+        MongoDBDeleteNote(id)
             .then(() => {
-                fetch(`/states/update`, {
-                    method: "PATCH",
-                    headers: {
-                        "Content-type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        length: notesLeft - 1,
-                        login: currentUser,
-                    }),
-                });
+                MongoDBDecrementStateLength(notesLeft, currentUser);
             })
             .then(() => {
                 setNotes(() => {
-                    const sliceArr = notes.filter((note, index) => index !== noteIndex && note);
+                    const sliceArr: Note[] = notes.filter(
+                        (note, index) => index !== noteIndex && note,
+                    );
                     return sliceArr;
                 });
 
@@ -118,29 +113,10 @@ const Input = ({ user }) => {
             });
     };
 
-    const changeNoteActiveState = (isActiveState, noteIndex, id) => {
-        fetch(`/notes/update/${id}`, {
-            method: "PATCH",
-            headers: {
-                "Content-type": "application/json",
-            },
-            body: JSON.stringify({
-                text: notes[noteIndex].text,
-                isActive: !isActiveState,
-                login: currentUser,
-            }),
-        })
+    const changeNoteActiveState = (isActiveState: boolean, noteIndex: number, id: string) => {
+        MongoDBUpdateActiveState(id, notes, isActiveState, noteIndex, currentUser)
             .then(() => {
-                fetch(`/states/update`, {
-                    method: "PATCH",
-                    headers: {
-                        "Content-type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        length: isActiveState ? notesLeft - 1 : notesLeft + 1,
-                        login: currentUser,
-                    }),
-                });
+                MongoDBPatchStatesLength(isActiveState, currentUser, notesLeft, currentlyRendering);
             })
             .then(() => {
                 setNotes(() => {
@@ -154,62 +130,31 @@ const Input = ({ user }) => {
     };
 
     const changeAllNotesDone = () => {
-        const deleteInOrder = async () => {
-            const wow = await notes.forEach(note => {
-                fetch(`/notes/update/${note._id}`, {
-                    method: "PATCH",
-                    headers: {
-                        "Content-type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        _id: note._id,
-                        text: note.text,
-                        isActive: notesLeft ? false : true,
-                        login: currentUser,
-                    }),
-                });
-            });
-        };
+        MongoDBMarkAllNotesDone(notes, currentUser, notesLeft, currentlyRendering).then(() => {
+            setNotes(() => {
+                const sliceArr: Note[] = notes.map((note, index) => ({
+                    text: note.text,
+                    isActive: notesLeft ? false : true,
+                    _id: note._id,
+                    login: note.login,
+                }));
 
-        deleteInOrder()
-            .then(() => {
-                fetch(`/states/update`, {
-                    method: "PATCH",
-                    headers: {
-                        "Content-type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        length: notesLeft ? 0 : notes.length,
-                        currentlyRendering: currentlyRendering,
-                        login: currentUser,
-                    }),
-                });
-            })
-            .then(() => {
-                setNotes(() => {
-                    const sliceArr = notes.map((note, index) => ({
-                        text: note.text,
-                        isActive: notesLeft ? false : true,
-                        _id: note._id,
-                    }));
-
-                    return sliceArr;
-                });
-                if (notesLeft) {
-                    setNotesLeft(0);
-                } else {
-                    setNotesLeft(notes.length);
-                }
+                return sliceArr;
             });
+            if (notesLeft) {
+                setNotesLeft(0);
+            } else {
+                setNotesLeft(notes.length);
+            }
+        });
     };
 
     const logoutUser = () => {
         window.localStorage.setItem("isLogged", JSON.stringify(false));
         window.localStorage.setItem("user", "");
-        fetch("/users/logout")
-            .then(res => res.json())
-            .then(data => console.log(data))
-            .then(() => window.location.reload());
+        window.localStorage.setItem("isAdmin", JSON.stringify(false));
+
+        MongoDBLogoutUser();
     };
 
     return (
@@ -222,14 +167,15 @@ const Input = ({ user }) => {
                     ></span>
                 )}
                 <input
+                    maxLength={32}
                     onKeyDown={e => {
-                        if (e.key === "Enter" && e.target.value !== "") {
+                        if (e.key === "Enter" && e.currentTarget.value !== "") {
                             const uniqeId = uniqid();
 
-                            const stateArr = [
+                            const stateArr: Note[] = [
                                 ...notes,
                                 {
-                                    text: e.target.value,
+                                    text: e.currentTarget.value,
                                     isActive: true,
                                     _id: uniqeId,
                                     login: currentUser,
@@ -242,7 +188,7 @@ const Input = ({ user }) => {
                                     "Content-type": "application/json",
                                 },
                                 body: JSON.stringify({
-                                    text: e.target.value,
+                                    text: e.currentTarget.value,
                                     isActive: true,
                                     _id: uniqeId,
                                     login: currentUser,
@@ -264,7 +210,7 @@ const Input = ({ user }) => {
                                 .then(() => {
                                     setNotes(stateArr);
                                     setNotesLeft(prevState => prevState + 1);
-                                    e.target.value = "";
+                                    e.currentTarget.value = "";
                                 });
                         }
                     }}
@@ -343,8 +289,6 @@ const Input = ({ user }) => {
         </>
     );
 };
-
-export { Input };
 
 const StyledTransition = styled(TransitionGroup)`
     width: 100%;

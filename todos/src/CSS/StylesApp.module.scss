@@ -1,15 +1,40 @@
 @use "colors" as v;
 
+@keyframes error {
+    0% {
+        transform: translateX(0);
+    }
+    50% {
+        transform: translateX(25px);
+    }
+    75% {
+        transform: translateX(-25px);
+    }
+    100% {
+        transform: translateX(0);
+    }
+}
+
+@keyframes succcess {
+    0% {
+        transform: scale(0);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
 body {
     background-color: v.$background-color;
 }
 
 .appWrapper {
     display: grid;
-  min-height: 100vh;
-  overflow: hidden;
-  justify-content: center;
-  grid-template-rows: auto 1fr auto;
+    min-height: 100vh;
+    overflow: hidden;
+    justify-content: center;
+    grid-template-rows: auto 1fr auto;
 }
 
 .sectionContainer {
@@ -28,4 +53,51 @@ body {
     margin: 5rem 0 5rem;
     font-size: 1rem;
     color: #bfbfbf;
+}
+
+.logoImg {
+    height: 100%;
+    object-fit: cover;
+}
+
+.linkImg {
+    height: 1.5rem;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    right: -2rem;
+}
+
+.modalWrapper {
+    position: fixed;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    top: 25%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5rem;
+    opacity: 1;
+    transition: opacity 100ms;
+}
+
+.modalWindow {
+    background: white;
+    padding: 2em;
+    height: 5rem;
+    min-width: 30rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999999;
+    border-radius: 1rem;
+    box-shadow: 0 1px 2px -0.5px rgb(128 128 128 / 80%);
+    color: red;
+    animation: error 150ms;
+
+    &Success {
+        @extend .modalWindow;
+        color: rgb(49, 160, 104);
+        animation: succcess 300ms;
+    }
 }
