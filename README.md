@@ -21,7 +21,7 @@ For every case I used basic `React.js`, CSS framework called `SASS` and a few li
 
 In the last case for creating custom backend communicating with MongoDB and Frontend I used;
 - `express` framework,
-- `mongoose` for creating data schemas appropriate for MongoDB,
+- `mongoose` for creating data schemas appropriate for MongoDB and data exchange,
 - `bcrypt` for hashing users passwords,
 - `JSON Web Token` for creating web tokens for specific users,
 - `Cookie Parser` for saving web tokens in cookies.
