@@ -1,7 +1,8 @@
 # todos Clone
 
-This is a recreation of a JS app called [todos](https://todomvc.com/examples/vanillajs/), using `React.js` and SASS.
-
+This is a recreation of a JS app called [todos](https://todomvc.com/examples/vanillajs/), using `React.js`, `React Router`, `SASS`, `Node.js` and `MongoDB`.
+<br>
+<br>
 <img src="screenshots/screenshot1.jpg">
 
 ## Overview
@@ -11,7 +12,7 @@ My task was to recreate app called `todos` using `React.js` and to store it's da
 - using json-server on branch `json-server`,
 - and finally in MongoDB using my own backend written in node.js on branch `express-backend-mongo`.
 
-The last case apart from storing data in MongoDB also enables registering multiple users, gives users an ability to login / logout from the app and introduces user-assigned notes. Every use can create his own collection of notes.
+The last case apart from storing data in MongoDB also enables registering multiple users, gives users ability to login / logout from the app and introduces user-assigned notes. Every user can create his own collection of notes.
 
 Every app's version is stored on different branch and can be viewed separately.
 
